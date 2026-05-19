@@ -1,1 +1,78 @@
-/* You can add global styles to this file, and also import other style files */
+body {
+    font-family: sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column; /* Stack header/footer vertically */
+    min-height: 100vh;
+}
+
+header, footer {
+    background-color: #879A86;
+    color: #F8FFEE;
+    padding: 1rem;
+    text-align: center;
+}
+
+.container {
+    display: flex; /* Arrange sidebar and content horizontally */
+    flex: 1; /* Allow container to grow and fill available space */
+}
+
+.sidebar {
+    width: 200px;
+    background-color: #758B74;
+    padding: 1px;
+    box-sizing: border-box; /* Include padding in the width calculation */
+}
+
+.sidebar ul {
+    list-style-type: none; /* Remove bullet points */
+    padding: 0;
+}
+
+.sidebar li a {
+    display: block; /* Make links fill the entire list item area */
+    padding: 10px 15px;
+    text-decoration: none; /* Remove underlines */
+    color: #333;
+    border-bottom: 1px solid #ddd;
+}
+
+.sidebar li a:hover {
+    background-color: #F8FFEE;
+}
+
+.content {
+    flex: 1; /* Allow content to take up remaining space */
+    padding: 1rem;
+}
+
+.menusep {
+	background-color: #A4AA9F;	
+	padding-left: 5px;
+	padding-bottom: 3px;
+	padding-top: 3px;
+	color: white;
+}
+
+section { 
+	display: none; 
+} 
+
+section:target { 
+	display: block; 
+}
+
+.repository {
+	border: 2px solid white;
+	margin: 5px;
+	padding: 10px;
+	background-color: white;
+	color: black;
+}
+
+.repolink {
+	padding: 6px 2px;
+	background-color: #A4AA9F;
+}

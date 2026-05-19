@@ -2,11 +2,12 @@
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
   "cli": {
-    "packageManager": "npm"
+    "packageManager": "npm",
+    "analytics": "3e8a4c5a-b1ce-43eb-997f-db28ab68660f"
   },
   "newProjectRoot": "projects",
   "projects": {
-    "TowerHanoi2": {
+    "TowerHanoi": {
       "projectType": "application",
       "schematics": {},
       "root": "",
@@ -16,12 +17,23 @@
         "build": {
           "builder": "@angular/build:application",
           "options": {
+            "outputPath": "dist/tower-hanoi",
             "browser": "src/main.ts",
+            "index": {
+              "input": "src/index.html",
+              "output": "towerhanoi.html"
+            },
             "tsConfig": "tsconfig.app.json",
             "assets": [
               {
                 "glob": "**/*",
-                "input": "public"
+                "input": "public",
+                "output": "images/towerhanoi"
+              },
+              {
+                "glob": "styles.css",
+                "input": "src",
+                "output": "css/towerhanoi"
               }
             ],
             "styles": [
@@ -56,10 +68,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "TowerHanoi2:build:production"
+              "buildTarget": "TowerHanoi:build:production"
             },
             "development": {
-              "buildTarget": "TowerHanoi2:build:development"
+              "buildTarget": "TowerHanoi:build:development"
             }
           },
           "defaultConfiguration": "development"
