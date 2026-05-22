@@ -6,25 +6,24 @@ import { map } from 'rxjs/operators';
   providedIn: 'root',
 })
 export class MoveService {
-
-  // there is a specific sequence of moves that solve the puzzle. one disk changes
-  // for each consecutive member of the sequence. thus a single integer can represent
-  // the position of each disk at a given step in the sequence. 0 is the initial state,
-  // with all disks on post 0.
+  // there is a specific sequence of moves that solve the puzzle. one disk
+  // changes for each consecutive member of the sequence. thus a single integer
+  // can represent the position of each disk at a given step in the sequence. 0
+  // is the initial state, with all disks on post 0.
   private puzzleState: number = 0;
 
-  // the sequence of moves from intial state to solution.
+  // the sequence of moves from intial state to solution. since the top disk on
+  // the originating post is always the disk being moved, a move can be represented
+  // with just two post numbers.
   moves = new Map<number, number[]>();
 
   constructor() {
     this.puzzleState = 0;
     this.moveDisks(0, 2, 5);
-    console.log('number of moves = ' + this.moves.size);
   }
 
   /**
-   * solve the puzzle. moves specified number of disks from FROM post
-   * to destination post.
+   * during class initialization, initialize the movves array with the solution.
    *
    * @param from the originating post
    * @param destination the destination post
@@ -35,7 +34,6 @@ export class MoveService {
       // recursive base case.
       this.puzzleState = this.puzzleState + 1;
       this.moves.set(this.puzzleState, [originating, destination]);
-
     } else {
       let other = this.computeOtherPost(originating, destination);
       this.moveDisks(originating, other, count - 1);
@@ -57,14 +55,15 @@ export class MoveService {
   }
 
   /*
-   * for a given position, returns the seqeunce of moves to get to the starting position.
-   * moves are specified as new position, originating and destination post numbers.
+   * for a given position, returns the seqeunce of moves to get to the starting
+   * position. moves are specified as new position, originating and destination
+   * post numbers.
    */
   reverse(currentState: number): Observable<number[]> {
     if (currentState <= 0) throw Error('already at beginning, cannot go back any further.');
 
     const priorMove = (p: number) => {
-      const move: number[] = this.moves.get(p - 1) ?? [0, 0];
+      const move: number[] = this.moves.get(p) ?? [0, 0];
       return [p - 1, ...move];
     };
 
@@ -122,7 +121,7 @@ export class MoveService {
       return [p + 1, ...move];
     };
 
-    let totalCount: number = this.moves.size - currentState - 1;
+    let totalCount: number = this.moves.size - currentState;
 
     return range(currentState, totalCount).pipe(
       // timer create an Observable stream

@@ -1,5 +1,5 @@
-import { Component, viewChildren, inject, signal } from '@angular/core';
-import { DatePipe, AsyncPipe } from '@angular/common';
+import { Component, viewChildren, inject } from '@angular/core';
+import { Subject, takeUntil } from 'rxjs';
 import { Disk } from './disk/disk';
 import { MoveService } from './move-service';
 
@@ -10,6 +10,8 @@ import { MoveService } from './move-service';
   styleUrl: './app.css',
 })
 export class App {
+  private cancel$ = new Subject<void>();
+
   // provides sequences of moves from the puzzles solution.
   private moveService = inject(MoveService);
 
@@ -21,9 +23,9 @@ export class App {
   // the levels are 0 bottom to 4 top.
 
   // there is a specific sequence of moves that solve the puzzle. one disk changes
-  // for each consecutive member of the sequence. thus a single integer can represent
-  // the position of each disk at a given step in the sequence. 0 is the initial state,
-  // with all disks on post 0.
+  // for each consecutive member of the sequence. thus a single integer can
+  // represent the position of each disk at a given step in the sequence. 0 is the
+  // initial state, with all disks on post 0.
   private currentState: number = 0;
 
   // the parent componet has 5 disks. obtain them.
@@ -34,7 +36,7 @@ export class App {
    * since the top disk on the originating post is always the disk being moved, a
    * move can be represented with just two post numbers.
    * @param originating the originating post
-   * @param destination he destination post
+   * @param destination the destination post
    */
   moveDisk(originating: number, destination: number) {
     // obtain disks on both posts
@@ -52,19 +54,25 @@ export class App {
   }
 
   /*
-   * the service provides a sequence of moves from the current state to the initial state.
+   * the service provides a sequence of moves from the current state to the initial
+   * state.
    */
   reverse() {
-    this.moveService.reverse(this.currentState).subscribe((move) => {
-      this.currentState = move[0];
-      this.moveDisk(move[2], move[1]); // reverse the direction of the move.
-    });
+    this.cancel$.next();
+    this.moveService
+      .reverse(this.currentState)
+      .pipe(takeUntil(this.cancel$))
+      .subscribe((move) => {
+        this.currentState = move[0];
+        this.moveDisk(move[2], move[1]); // reverse the direction of the move.
+      });
   }
 
   /*
    * the service provides the last move leading to the current state.
    */
   prior() {
+    this.cancel$.next();
     let move = this.moveService.prior(this.currentState);
     this.currentState = move[0];
     this.moveDisk(move[2], move[1]); // reverse the direction of the move.
@@ -74,6 +82,7 @@ export class App {
    * the disks are put back to the original state.
    */
   reset() {
+    this.cancel$.next();
     // sort the disks largest to smallest
     const sortedDisks = [...this.disks()].sort((a, b) => b.radius() - a.radius());
     // assign levels in reverse order
@@ -86,19 +95,25 @@ export class App {
   /*
    * the service provides the next move in the sequence leading to the solution.
    */
-  next(): void {
+  next() {
+    this.cancel$.next();
     let move = this.moveService.next(this.currentState);
     this.currentState = move[0];
     this.moveDisk(move[1], move[2]);
   }
 
   /*
-   * the service provides a sequence of moves from the current state to the solution.
+   * the service provides a sequence of moves from the current state to the
+   * solution.
    */
   advance() {
-    this.moveService.advance(this.currentState).subscribe((move) => {
-      this.currentState = move[0];
-      this.moveDisk(move[1], move[2]);
-    });
+    this.cancel$.next();
+    this.moveService
+      .advance(this.currentState)
+      .pipe(takeUntil(this.cancel$))
+      .subscribe((move) => {
+        this.currentState = move[0];
+        this.moveDisk(move[1], move[2]);
+      });
   }
 }
