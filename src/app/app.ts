@@ -1,7 +1,7 @@
-import { Component, viewChildren } from '@angular/core';
+import { Component, viewChildren, inject, signal } from '@angular/core';
+import { DatePipe, AsyncPipe } from '@angular/common';
 import { Disk } from './disk/disk';
-
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+import { MoveService } from './move-service';
 
 @Component({
   selector: 'app-root',
@@ -10,81 +10,95 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
   styleUrl: './app.css',
 })
 export class App {
+  // provides sequences of moves from the puzzles solution.
+  private moveService = inject(MoveService);
+
+  // the posts are numbered
+  //    0: left
+  //    1: middle
+  //    2: right
+
+  // the levels are 0 bottom to 4 top.
+
+  // there is a specific sequence of moves that solve the puzzle. one disk changes
+  // for each consecutive member of the sequence. thus a single integer can represent
+  // the position of each disk at a given step in the sequence. 0 is the initial state,
+  // with all disks on post 0.
+  private currentState: number = 0;
+
   // the parent componet has 5 disks. obtain them.
   disks = viewChildren(Disk);
 
-  // runs after stuff have been initialized.
-  ngAfterViewInit(): void {
-    this.moveDisks(0, 2, 5);
-  }
-
-  /**
-   * solve the puzzle. moves specified number of disks from FROM post
-   * to TO post.
-   *
-   * @param from the originating post
-   * @param to the destination post
-   * @param count number of disks to move
-   */
-  async moveDisks(from: number, to: number, count: number) {
-    if (count == 1) {
-      // recursive base case.
-      this.moveDisk(from, to);
-      await delay(1000);
-    } else {
-      let other = this.computeOtherPost(from, to);
-      await this.moveDisks(from, other, count - 1);
-      await this.moveDisks(from, to, 1);
-      await this.moveDisks(other, to, count - 1);
-    }
-  }
-
-  /**
-   * given any two posts compute the third post.
-   */
-  computeOtherPost(from: number, to: number) {
-    // the posts values (0, 1, 2) to powers to 2.
-    // 2 ^ 0 + 2 ^ 1 + 2 ^ 2 = 1 + 2 + 4 = 7
-    // subtract any two posts from 7 to get the third post.
-    let p = 7 - Math.pow(2, from) - Math.pow(2, to);
-    let other = Math.log2(p);
-    return other;
-  }
-
   /**
    * move a disk on screen. the top disk on the originating post is always moved.
-   *
-   * @param from the originating post
-   * @param to he destination post
+   * since the top disk on the originating post is always the disk being moved, a
+   * move can be represented with just two post numbers.
+   * @param originating the originating post
+   * @param destination he destination post
    */
-  moveDisk(from: number, to: number) {
-    //console.log('disks array has ' + this.disks().length + ' disks');
-
+  moveDisk(originating: number, destination: number) {
     // obtain disks on both posts
-    let fromDisks = this.disks().filter((disk) => disk.post() == from);
-    let toDisks = this.disks().filter((disk) => disk.post() == to);
-    //console.log(fromDisks.length + ' disks on from post');
-    //console.log(toDisks.length + ' disks on to post');
+    let originatingDisks = this.disks().filter((disk) => disk.post() == originating);
+    let destinationDisks = this.disks().filter((disk) => disk.post() == destination);
 
     // obtain max level on each post
-    const fromMax = Math.max(...fromDisks.map((disk) => disk.level()));
-    const toMax = Math.max(-1, ...toDisks.map((disk) => disk.level()));
-    //console.log('moving from level ' + fromMax + ' to level ' + (toMax + 1));
+    const originatingMax = Math.max(...originatingDisks.map((disk) => disk.level()));
+    const destinationMax = Math.max(-1, ...destinationDisks.map((disk) => disk.level()));
 
     // obtain disk and update post and level
+    let movingDisk = originatingDisks.filter((disk) => disk.level() == originatingMax)[0];
+    movingDisk.post.set(destination);
+    movingDisk.level.set(destinationMax + 1);
+  }
 
-    let movingDisk = fromDisks.filter((disk) => disk.level() == fromMax)[0];
-    /*
-    console.log(
-      'the disk with radius of ' +
-        movingDisk.radius +
-        ' is going to post ' +
-        to +
-        ' level ' +
-        (toMax + 1),
-    );
-    */
-    movingDisk.post.set(to);
-    movingDisk.level.set(toMax + 1);
+  /*
+   * the service provides a sequence of moves from the current state to the initial state.
+   */
+  reverse() {
+    this.moveService.reverse(this.currentState).subscribe((move) => {
+      this.currentState = move[0];
+      this.moveDisk(move[2], move[1]); // reverse the direction of the move.
+    });
+  }
+
+  /*
+   * the service provides the last move leading to the current state.
+   */
+  prior() {
+    let move = this.moveService.prior(this.currentState);
+    this.currentState = move[0];
+    this.moveDisk(move[2], move[1]); // reverse the direction of the move.
+  }
+
+  /*
+   * the disks are put back to the original state.
+   */
+  reset() {
+    // sort the disks largest to smallest
+    const sortedDisks = [...this.disks()].sort((a, b) => b.radius() - a.radius());
+    // assign levels in reverse order
+    sortedDisks.map((disk, index) => disk.level.set(index));
+    // set alll posts to 0.
+    this.disks().map((disk) => disk.post.set(0));
+    this.currentState = 0;
+  }
+
+  /*
+   * the service provides the next move in the sequence leading to the solution.
+   */
+  next(): void {
+    let move = this.moveService.next(this.currentState);
+    this.currentState = move[0];
+    this.moveDisk(move[1], move[2]);
+  }
+
+  /*
+   * the service provides a sequence of moves from the current state to the solution.
+   */
+  advance() {
+    this.moveService.advance(this.currentState).subscribe((move) => {
+      this.currentState = move[0];
+      this.moveDisk(move[1], move[2]);
+    });
   }
 }
